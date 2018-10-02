@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ServiceWorker: Import installed module scripts</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<body>
+<script>
+const MODULE_SCRIPT = 'resources/module-script.js';
+async function setup(script, type) {
+  await navigator.serviceWorker.register(
+    script, { scope: script, type: type });
+};
+
+promise_test(async t => {
+  await service_worker_unregister(t, MODULE_SCRIPT);
+  await setup(MODULE_SCRIPT, 'module');
+  const msgPromise = new Promise(resolve => {
+    navigator.serviceWorker.onmessage = resolve;
+  });
+  const registration = await navigator.serviceWorker.register(
+    MODULE_SCRIPT, { scope: MODULE_SCRIPT, type: 'module' });
+
+  // The timing of an activation of ServiceWorker is flaky.
+  const sw = registration.installing ?
+    registration.installing : registration.active;
+  sw.postMessage('');
+  const msgEvent = await msgPromise;
+  assert_equals(msgEvent.data, 'module script');
+}, 'Import installed module script');
+</script>
+</body>
